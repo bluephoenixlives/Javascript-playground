@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>JavaScript Practice Playground</title>
+
+<style>
+  body {
+    margin: 0;
+    font-family: monospace;
+    color: white;
+    background: #00cfcf;
+  }
+
+  button {
+    font-size: 20px;
+    padding: 15px 35px;
+    cursor: pointer;
+    border: none;
+    border-radius: 6px;
+    background: #008b8b;
+    color: white;
+  }
+
+  #home {
+    display: flex;
+    height: 100vh;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #editorView {
+    display: none;
+    height: 100vh;
+  }
+
+  #toolbar {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 10;
+  }
+
+  #toolbar button {
+    font-size: 14px;
+    padding: 6px 12px;
+    margin-right: 6px;
+  }
+
+  #editor {
+    width: 50%;
+    height: 100%;
+  }
+
+  #right {
+    width: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  canvas {
+    background: black;
+    border: 2px solid white;
+  }
+
+  #note {
+    margin-top: 10px;
+    opacity: 0.85;
+    text-align: center;
+  }
+</style>
+</head>
+
+<body>
+
+<!-- HOME SCREEN -->
+<div id="home">
+  <button onclick="start()">Start JavaScript</button>
+</div>
+
+<!-- EDITOR SCREEN -->
+<div id="editorView">
+  <div id="toolbar">
+    <button onclick="goHome()">Home</button>
+    <button onclick="saveFile()">Save File</button>
+  </div>
+
+  <div id="editor"></div>
+
+  <div id="right">
+    <canvas id="canvas" width="500" height="500"></canvas>
+    <div id="note">JavaScript runs live on the canvas</div>
+  </div>
+</div>
+
+<!-- Monaco Editor -->
+<script src="https://unpkg.com/monaco-editor@0.45.0/min/vs/loader.js"></script>
+
+<script>
+require.config({ paths: { vs: "https://unpkg.com/monaco-editor@0.45.0/min/vs" } });
+
+let editor;
+let ctx;
+
+function start() {
+  document.getElementById("home").style.display = "none";
+  document.getElementById("editorView").style.display = "flex";
+
+  require(["vs/editor/editor.main"], () => {
+    editor = monaco.editor.create(document.getElementById("editor"), {
+      value: `// JavaScript Canvas Practice
+
+function draw() {
+  background("cyan");
+  fill("black");
+  rect(150, 150, 200, 200);
+}`,
+      language: "javascript",
+      theme: "vs-dark",
+      automaticLayout: true
+    });
+  });
+
+  setupCanvas();
+}
+
+function goHome() {
+  document.getElementById("editorView").style.display = "none";
+  document.getElementById("home").style.display = "flex";
+}
+
+function saveFile() {
+  const blob = new Blob([editor.getValue()], { type: "text/plain" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "sketch.js";
+  a.click();
+}
+
+function setupCanvas() {
+  const canvas = document.getElementById("canvas");
+  ctx = canvas.getContext("2d");
+
+  function background(c) {
+    ctx.fillStyle = c;
+    ctx.fillRect(0, 0, 500, 500);
+  }
+
+  function fill(c) {
+    ctx.fillStyle = c;
+  }
+
+  function rect(x, y, w, h) {
+    ctx.fillRect(x, y, w, h);
+  }
+
+  function clear() {
+    ctx.clearRect(0, 0, 500, 500);
+  }
+
+  function loop() {
+    clear();
+    try {
+      const userCode = new Function(
+        "background", "fill", "rect",
+        editor.getValue() + "; return typeof draw === 'function' ? draw : null;"
+      );
+
+      const drawFn = userCode(background, fill, rect);
+      if (drawFn) drawFn();
+    } catch {}
+
+    requestAnimationFrame(loop);
+  }
+
+  loop();
+}
+</script>
+
+</body>
+</html>
